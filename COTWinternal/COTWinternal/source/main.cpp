@@ -70,8 +70,8 @@ void injected_thread(HMODULE instance) noexcept
     playerBase = *(uintptr_t*)(playerBase + 0x48);
     if (!playerBase) return;
 
-
-    std::cout << "Player Base Found at: 0x" << std::dec << playerBase << "\n";
+    std::cout << "Module Base Found at: 0x" << std::hex << baseAddress << "\n";
+    std::cout << "Player Base Found at: 0x" << std::hex << playerBase << "\n";
 
     // Pointers to values
     uint32_t* playerCash = reinterpret_cast<uint32_t*>(playerBase + offset::cash);
