@@ -58,22 +58,16 @@ void injected_thread(HMODULE instance) noexcept
     uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
 
     // Resolve player base dynamically
-    uintptr_t* playerBasePtr = reinterpret_cast<uintptr_t*>(baseAddress + 0x024B84E8);
+    uintptr_t* playerBasePtr = reinterpret_cast<uintptr_t*>(baseAddress + 0x024B2F20);
     if (!playerBasePtr || !*playerBasePtr) return;
 
     uintptr_t playerBase = *playerBasePtr;
     if (!playerBase) return;
 
-    playerBase = *(uintptr_t*)(playerBase + 0x170);
+    playerBase = *(uintptr_t*)(playerBase + 0x18);
     if (!playerBase) return;
 
-    playerBase = *(uintptr_t*)(playerBase + 0x0);
-    if (!playerBase) return;
-
-    playerBase = *(uintptr_t*)(playerBase + 0x0);
-    if (!playerBase) return;
-
-    playerBase = *(uintptr_t*)(playerBase + 0x1E8);
+    playerBase = *(uintptr_t*)(playerBase + 0x38);
     if (!playerBase) return;
 
 
