@@ -34,10 +34,17 @@ namespace offset
     constexpr uintptr_t cash = 0x360;
     constexpr uintptr_t xp = 0x2D0;
     constexpr uintptr_t level = 0x260;
+    constexpr uintptr_t rifleScore = 0x378;
+    constexpr uintptr_t handgunScore = 0x37C;
+    constexpr uintptr_t shotgunScore = 0x380;
+    constexpr uintptr_t archeryScore = 0x384;
 }
 
 bool infiniteMoney = false;
 bool instantLevel60 = false;
+
+int counterCash = 0;
+int counterXP = 0;
 
 void toggleCheats()
 {
@@ -77,6 +84,10 @@ void injected_thread(HMODULE instance) noexcept
     uint32_t* playerCash = reinterpret_cast<uint32_t*>(playerBase + offset::cash);
     uint32_t* playerXP = reinterpret_cast<uint32_t*>(playerBase + offset::xp);
     uint32_t* playerLevel = reinterpret_cast<uint32_t*>(playerBase + offset::level);
+    uint32_t* rifleScore = reinterpret_cast<uint32_t*>(playerBase + offset::rifleScore);
+    uint32_t* handgunScore = reinterpret_cast<uint32_t*>(playerBase + offset::handgunScore);
+    uint32_t* shotgunScore = reinterpret_cast<uint32_t*>(playerBase + offset::shotgunScore);
+    uint32_t* archeryScore = reinterpret_cast<uint32_t*>(playerBase + offset::archeryScore);
 
     int count = 1;
     while (!GetAsyncKeyState(VK_INSERT))
@@ -86,12 +97,38 @@ void injected_thread(HMODULE instance) noexcept
 
         __try
         {
-            if (playerCash && playerXP && playerLevel)
+            if (playerCash && playerXP && playerLevel && offset::rifleScore && offset::handgunScore && offset::shotgunScore && offset::archeryScore)
             {
-                if (infiniteMoney) *playerCash = 999999999;
-                if (instantLevel60) *playerXP = 999999999;
+                if (infiniteMoney)
+                {
+                    *playerCash = 999999999;
 
-                std::cout << "Cash: " << std::dec << *playerCash << " | XP: " << *playerXP << " | Level: " << *playerLevel << "\n";
+                    if (counterCash < 1)
+                    {
+                        std::cout << "Cash: " << std::dec << *playerCash << "\n";
+                        counterCash++;
+                    }
+                }
+                if (instantLevel60)
+                {
+                    *playerXP = 999999999;
+                    *rifleScore = 999999999;
+					*handgunScore = 999999999;
+					*shotgunScore = 999999999;
+					*archeryScore = 999999999;
+					*playerLevel = 60;
+
+                    if (counterXP < 1)
+                    {
+                        std::cout << "XP: " << *playerXP << "\n";
+                        std::cout << "Level: " << *playerLevel << "\n";
+                        std::cout << "Rifle Score: " << *rifleScore << "\n";
+                        std::cout << "Handgun Score: " << *handgunScore << "\n";
+                        std::cout << "Shotgun Score: " << *shotgunScore << "\n";
+                        std::cout << "Archery Score: " << *archeryScore << "\n";
+                        counterXP++;
+                    }
+                }
             }
             else
             {
