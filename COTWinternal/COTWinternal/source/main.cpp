@@ -23,6 +23,8 @@
         }
 */
 
+// Coordinates are stored in a vec3, I think the base of CCharacter is coords - 0x500;
+
 #define WIN_32_LEAN_AND_MEAN
 #include <iostream>
 #include <Windows.h>
@@ -31,25 +33,28 @@
 
 namespace offset
 {
-    constexpr uintptr_t cash = 0x360;
-    constexpr uintptr_t xp = 0x2D0;
     constexpr uintptr_t level = 0x260;
+    constexpr uintptr_t xp = 0x2D0;
+    constexpr uintptr_t skillPoints = 0x2D4;
+    constexpr uintptr_t perkPoints = 0x2D8;
+    constexpr uintptr_t cash = 0x360;
     constexpr uintptr_t rifleScore = 0x378;
     constexpr uintptr_t handgunScore = 0x37C;
     constexpr uintptr_t shotgunScore = 0x380;
     constexpr uintptr_t archeryScore = 0x384;
+	constexpr float worldTime = 0xE8; // different base address
 }
 
 bool infiniteMoney = false;
-bool instantLevel60 = false;
+bool levelUp = false;
 
 int counterCash = 0;
-int counterXP = 0;
+int counterXp = 0;
 
 void toggleCheats()
 {
     if (GetAsyncKeyState(VK_F1) & 1) infiniteMoney = !infiniteMoney;
-    if (GetAsyncKeyState(VK_F2) & 1) instantLevel60 = !instantLevel60;
+    if (GetAsyncKeyState(VK_F2) & 1) levelUp = !levelUp;
 }
 
 void injected_thread(HMODULE instance) noexcept
@@ -88,6 +93,8 @@ void injected_thread(HMODULE instance) noexcept
     uint32_t* handgunScore = reinterpret_cast<uint32_t*>(playerBase + offset::handgunScore);
     uint32_t* shotgunScore = reinterpret_cast<uint32_t*>(playerBase + offset::shotgunScore);
     uint32_t* archeryScore = reinterpret_cast<uint32_t*>(playerBase + offset::archeryScore);
+    uint32_t* skillPoints = reinterpret_cast<uint32_t*>(playerBase + offset::skillPoints);
+    uint32_t* perkPoints = reinterpret_cast<uint32_t*>(playerBase + offset::perkPoints);
 
     int count = 1;
     while (!GetAsyncKeyState(VK_INSERT))
@@ -109,7 +116,7 @@ void injected_thread(HMODULE instance) noexcept
                         counterCash++;
                     }
                 }
-                if (instantLevel60)
+                if (levelUp)
                 {
                     *playerXP = 999999999;
                     *rifleScore = 999999999;
@@ -117,8 +124,10 @@ void injected_thread(HMODULE instance) noexcept
 					*shotgunScore = 999999999;
 					*archeryScore = 999999999;
 					*playerLevel = 60;
+                    *skillPoints = 999999999;
+                    *perkPoints = 999999999;
 
-                    if (counterXP < 1)
+                    if (counterXp < 1)
                     {
                         std::cout << "XP: " << *playerXP << "\n";
                         std::cout << "Level: " << *playerLevel << "\n";
@@ -126,7 +135,7 @@ void injected_thread(HMODULE instance) noexcept
                         std::cout << "Handgun Score: " << *handgunScore << "\n";
                         std::cout << "Shotgun Score: " << *shotgunScore << "\n";
                         std::cout << "Archery Score: " << *archeryScore << "\n";
-                        counterXP++;
+                        counterXp++;
                     }
                 }
             }
