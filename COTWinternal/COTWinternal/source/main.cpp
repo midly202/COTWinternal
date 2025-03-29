@@ -2,10 +2,10 @@
 // uintptr_t*   =	8 bytes
 // float*       =   float
 
-// Pointer Cast (wrong, according to chatgpt)
+// Pointer Cast (wrong)
 //uintptr_t* pBaseAddress = (uintptr_t*)GetModuleHandleA("TheHunterCotW_F.exe");
 
-// Value Cast (correct, according to chatgpt)
+// Value Cast (correct)
 //uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
 
 /* do NOT use this, IsBadReadPtr is unreliable and deprecated
