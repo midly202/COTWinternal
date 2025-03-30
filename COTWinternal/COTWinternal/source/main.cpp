@@ -30,6 +30,13 @@
 #include <Windows.h>
 #include <cstdint>
 #include <thread>
+#include "MinHook.h"
+
+#if _WIN64
+#pragma comment(lib, "libMinHook.x64.lib")
+#else
+#pragma comment(lib, "libMinHook.x86.lib")
+#endif
 
 namespace offset
 {
@@ -57,19 +64,38 @@ void toggleCheats()
     if (GetAsyncKeyState(VK_F2) & 1) levelUp = !levelUp;
 }
 
+// Hook function typedef
+/*
+typedef void(__fastcall* tTargetFunc)(void* rdx);
+tTargetFunc oTargetFunc = nullptr;
+
+void __fastcall hkTargetFunc(void* rdx)
+{
+    __try {
+        std::cout << "[Hooked] RDX = " << std::hex << rdx << std::endl;
+
+        if (rdx) {
+            float* coords = reinterpret_cast<float*>(rdx);
+            std::cout << "X: " << coords[0] << " | Y: " << coords[1] << " | Z: " << coords[2] << std::endl;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        std::cout << "Exception in hook!" << std::endl;
+    }
+
+    oTargetFunc(rdx); // Call original function to avoid crashes
+}
+*/
+
 void injected_thread(HMODULE instance) noexcept
 {
     // Allocates console for debugging
     AllocConsole();
     FILE* f = nullptr;
     freopen_s(&f, "CONOUT$", "w", stdout);
-
     std::cout << "Injected! Debugging active...\n";
 
-    // Get base address
     uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
-
-    // Resolve player base dynamically
     uintptr_t* playerBasePtr = reinterpret_cast<uintptr_t*>(baseAddress + 0x0234E8A0);
     if (!playerBasePtr || !*playerBasePtr) return;
 
@@ -96,6 +122,14 @@ void injected_thread(HMODULE instance) noexcept
     uint32_t* skillPoints = reinterpret_cast<uint32_t*>(playerBase + offset::skillPoints);
     uint32_t* perkPoints = reinterpret_cast<uint32_t*>(playerBase + offset::perkPoints);
 
+    // MinHook setup
+    /*
+    uintptr_t targetAddr = baseAddress + 0xF26369; // Address of the function writing to coordinates
+    MH_Initialize();
+    MH_CreateHook((LPVOID)targetAddr, &hkTargetFunc, (LPVOID*)&oTargetFunc);
+    // MH_EnableHook((LPVOID)targetAddr);
+    */
+
     int count = 1;
     while (!GetAsyncKeyState(VK_INSERT))
     {
@@ -109,6 +143,7 @@ void injected_thread(HMODULE instance) noexcept
                 if (infiniteMoney)
                 {
                     *playerCash = 999999999;
+                    //MH_EnableHook((LPVOID)targetAddr);
 
                     if (counterCash < 1)
                     {
@@ -131,6 +166,8 @@ void injected_thread(HMODULE instance) noexcept
                     {
                         std::cout << "XP: " << *playerXP << "\n";
                         std::cout << "Level: " << *playerLevel << "\n";
+                        std::cout << "Skill Points: " << *skillPoints << "\n";
+                        std::cout << "Perk Points: " << *perkPoints << "\n";
                         std::cout << "Rifle Score: " << *rifleScore << "\n";
                         std::cout << "Handgun Score: " << *handgunScore << "\n";
                         std::cout << "Shotgun Score: " << *shotgunScore << "\n";
@@ -152,6 +189,8 @@ void injected_thread(HMODULE instance) noexcept
     }
 
     // Cleanup
+    //MH_DisableHook((LPVOID)targetAddr);
+    //MH_Uninitialize();
     fclose(f);
     FreeConsole();
     FreeLibraryAndExitThread(instance, 0);
