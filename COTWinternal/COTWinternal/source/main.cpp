@@ -46,13 +46,10 @@ namespace offset
 	constexpr float worldTime = 0xE8; // different base 
 }
 
-// global flags
-bool hooks = false;
+// global flag
 bool statHack = false;
-bool cheat2 = false;
 bool thread1Running = true;
 bool thread2Running = true;
-bool shouldExit = false;
 
 void InitiateHooks(HMODULE instance) noexcept
 {
@@ -60,14 +57,13 @@ void InitiateHooks(HMODULE instance) noexcept
     AllocConsole();
     FILE* f = nullptr;
     freopen_s(&f, "CONOUT$", "w", stdout);
-    std::cout << "Injected! Debugging active...\n";
+    std::cout << "Hooking thread active...\n";
 
     // hook
-
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
 		Sleep(10);
-		std::cout << "Hook thread print...\n";
+        // code
     }
 
     // cleanup
@@ -90,6 +86,12 @@ void InitiateHooks(HMODULE instance) noexcept
 
 void StatHack(HMODULE instance) noexcept
 {
+    // Allocates console for debugging
+    AllocConsole();
+    FILE* f = nullptr;
+    freopen_s(&f, "CONOUT$", "w", stdout);
+    std::cout << "StatHack thread active...\n";
+
     // module base
     uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
 
