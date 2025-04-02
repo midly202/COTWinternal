@@ -28,7 +28,7 @@ void WriteToMemory(uintptr_t addressToWrite, char* valueToWrite, int byteNum)
 	VirtualProtect((LPVOID)addressToWrite, byteNum, oldProtection, &temp);
 }
 
-uintptr_t FindPattern(char* module, char* pattern, char* mask)
+uintptr_t FindPattern(const char* module, const char* pattern, const char* mask)
 {
 	MODULEINFO moduleInfo = GetModuleInfo(module);
 	uintptr_t baseAddress = (uintptr_t)moduleInfo.lpBaseOfDll;

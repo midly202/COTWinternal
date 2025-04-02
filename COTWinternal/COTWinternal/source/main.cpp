@@ -47,6 +47,7 @@ namespace offset
 }
 
 // global flag
+char coordOpcode[] = "/x90/x90"; // nop; this has to be the instruction's value in bytes, same concept as signature
 bool statHack = false;
 bool thread1Running = true;
 bool thread2Running = true;
@@ -59,17 +60,20 @@ void InitiateHooks(HMODULE instance) noexcept
     freopen_s(&f, "CONOUT$", "w", stdout);
     std::cout << "Hooking thread active...\n";
 
-    // hook
+    // scan for signature
+    uintptr_t coordAddy = FindPattern("theHunterCotW_F.exe", "\x0F\x28\x45\xD0\x0F\x29\x06", "xxxxxxx");
+    coordAddy += 4;
+    MsgBoxAddy(coordAddy);
+	// WriteToMemory(coordAddy, coordOpcode, 2); // size is currently 2 for nop, this will have to be changed
+
+	// while loop to keep the console open
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
 		Sleep(10);
-        // code
     }
 
-    // cleanup
-    thread1Running = false; // Mark this thread as finished
-
     // Only free the DLL if both threads are done
+    thread1Running = false;
     while (GetAsyncKeyState(VK_NUMPAD0))
     {
         Sleep(10);
@@ -167,7 +171,7 @@ void StatHack(HMODULE instance) noexcept
     }
 
 	// cleanup
-    thread2Running = false; // Mark this thread as finished
+    thread2Running = false;
 }
 
 int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reserved)
