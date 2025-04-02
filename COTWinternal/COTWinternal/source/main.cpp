@@ -1,3 +1,4 @@
+// DWORD*       =	4 byte
 // uint32_t*    =	4 bytes
 // uintptr_t*   =	8 bytes
 // float*       =   float
@@ -8,28 +9,21 @@
 // Value Cast (correct)
 //uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
 
-/* do NOT use this, IsBadReadPtr is unreliable and deprecated
-    __try
-    {
-        if (IsBadReadPtr(xCoord, sizeof(float)) ||
-            IsBadReadPtr(yCoord, sizeof(float)) ||
-            IsBadReadPtr(zCoord, sizeof(float)))
-        {
-            std::cout << "Memory read failed (Invalid Pointer)\n";
-        }
-        else
-        {
-            std::cout << "X: " << *xCoord << " | Y: " << *yCoord << " | Z: " << *zCoord << "\n";
-        }
+// if ejecting the thread from within the same thread doesn't work do it in a seperate thread.
+/*
+void __stdcall EjectThread(LPVOID lpParameter)
+{
+    Sleep(100);
+	FreeLibraryAndExitThread(static_cast<HMODULE>(lpParameter), 0);
+}
 */
-
-// Coordinates are stored in a vec3, I think the base of CCharacter is coords - 0x500;
 
 #define WIN_32_LEAN_AND_MEAN
 #include <iostream>
 #include <Windows.h>
 #include <cstdint>
 #include <thread>
+#include "../header/functions.h"
 #include "MinHook.h"
 
 #if _WIN64
@@ -40,8 +34,8 @@
 
 namespace offset
 {
-    constexpr uintptr_t level = 0x260;
-    constexpr uintptr_t xp = 0x2D0;
+    constexpr uintptr_t level = 0x260; // wrong 
+    constexpr uintptr_t xp = 0x2D0; // correct but verify if xp is even relevant
     constexpr uintptr_t skillPoints = 0x2D4;
     constexpr uintptr_t perkPoints = 0x2D8;
     constexpr uintptr_t cash = 0x360;
@@ -49,45 +43,18 @@ namespace offset
     constexpr uintptr_t handgunScore = 0x37C;
     constexpr uintptr_t shotgunScore = 0x380;
     constexpr uintptr_t archeryScore = 0x384;
-	constexpr float worldTime = 0xE8; // different base address
+	constexpr float worldTime = 0xE8; // different base 
 }
 
-bool infiniteMoney = false;
-bool levelUp = false;
+// global flags
+bool hooks = false;
+bool statHack = false;
+bool cheat2 = false;
+bool thread1Running = true;
+bool thread2Running = true;
+bool shouldExit = false;
 
-int counterCash = 0;
-int counterXp = 0;
-
-void toggleCheats()
-{
-    if (GetAsyncKeyState(VK_F1) & 1) infiniteMoney = !infiniteMoney;
-    if (GetAsyncKeyState(VK_F2) & 1) levelUp = !levelUp;
-}
-
-// Hook function typedef
-/*
-typedef void(__fastcall* tTargetFunc)(void* rdx);
-tTargetFunc oTargetFunc = nullptr;
-
-void __fastcall hkTargetFunc(void* rdx)
-{
-    __try {
-        std::cout << "[Hooked] RDX = " << std::hex << rdx << std::endl;
-
-        if (rdx) {
-            float* coords = reinterpret_cast<float*>(rdx);
-            std::cout << "X: " << coords[0] << " | Y: " << coords[1] << " | Z: " << coords[2] << std::endl;
-        }
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER) {
-        std::cout << "Exception in hook!" << std::endl;
-    }
-
-    oTargetFunc(rdx); // Call original function to avoid crashes
-}
-*/
-
-void injected_thread(HMODULE instance) noexcept
+void InitiateHooks(HMODULE instance) noexcept
 {
     // Allocates console for debugging
     AllocConsole();
@@ -95,7 +62,38 @@ void injected_thread(HMODULE instance) noexcept
     freopen_s(&f, "CONOUT$", "w", stdout);
     std::cout << "Injected! Debugging active...\n";
 
+    // hook
+
+    while (!GetAsyncKeyState(VK_NUMPAD0))
+    {
+		Sleep(10);
+		std::cout << "Hook thread print...\n";
+    }
+
+    // cleanup
+    thread1Running = false; // Mark this thread as finished
+
+    // Only free the DLL if both threads are done
+    while (GetAsyncKeyState(VK_NUMPAD0))
+    {
+        Sleep(10);
+        if (CanUninject(thread1Running, thread2Running))
+        {
+            fclose(f);
+            FreeConsole();
+            FreeLibraryAndExitThread(instance, 0);
+        }
+        else
+            std::cout << "Cannot uninject yet! Threads still running.\n";
+    }
+}
+
+void StatHack(HMODULE instance) noexcept
+{
+    // module base
     uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
+
+    //player base
     uintptr_t* playerBasePtr = reinterpret_cast<uintptr_t*>(baseAddress + 0x0234E8A0);
     if (!playerBasePtr || !*playerBasePtr) return;
 
@@ -122,58 +120,36 @@ void injected_thread(HMODULE instance) noexcept
     uint32_t* skillPoints = reinterpret_cast<uint32_t*>(playerBase + offset::skillPoints);
     uint32_t* perkPoints = reinterpret_cast<uint32_t*>(playerBase + offset::perkPoints);
 
-    // MinHook setup
-    /*
-    uintptr_t targetAddr = baseAddress + 0xF26369; // Address of the function writing to coordinates
-    MH_Initialize();
-    MH_CreateHook((LPVOID)targetAddr, &hkTargetFunc, (LPVOID*)&oTargetFunc);
-    // MH_EnableHook((LPVOID)targetAddr);
-    */
-
     int count = 1;
-    while (!GetAsyncKeyState(VK_INSERT))
+    while (!GetAsyncKeyState(VK_NUMPAD0))
     {
         Sleep(10);
-        toggleCheats();
 
         __try
         {
-            if (playerCash && playerXP && playerLevel && offset::rifleScore && offset::handgunScore && offset::shotgunScore && offset::archeryScore)
+            if (playerCash && playerXP && rifleScore && handgunScore && shotgunScore && archeryScore && playerLevel && skillPoints && perkPoints && offset::cash && offset::xp && offset::rifleScore && offset::handgunScore && offset::shotgunScore && offset::archeryScore && offset::level && offset::skillPoints && offset::perkPoints)
             {
-                if (infiniteMoney)
+                if (statHack)
                 {
                     *playerCash = 999999999;
-                    //MH_EnableHook((LPVOID)targetAddr);
-
-                    if (counterCash < 1)
-                    {
-                        std::cout << "Cash: " << std::dec << *playerCash << "\n";
-                        counterCash++;
-                    }
-                }
-                if (levelUp)
-                {
                     *playerXP = 999999999;
                     *rifleScore = 999999999;
-					*handgunScore = 999999999;
-					*shotgunScore = 999999999;
-					*archeryScore = 999999999;
-					*playerLevel = 60;
+                    *handgunScore = 999999999;
+                    *shotgunScore = 999999999;
+                    *archeryScore = 999999999;
+                    *playerLevel = 60;
                     *skillPoints = 999999999;
                     *perkPoints = 999999999;
 
-                    if (counterXp < 1)
-                    {
-                        std::cout << "XP: " << *playerXP << "\n";
-                        std::cout << "Level: " << *playerLevel << "\n";
-                        std::cout << "Skill Points: " << *skillPoints << "\n";
-                        std::cout << "Perk Points: " << *perkPoints << "\n";
-                        std::cout << "Rifle Score: " << *rifleScore << "\n";
-                        std::cout << "Handgun Score: " << *handgunScore << "\n";
-                        std::cout << "Shotgun Score: " << *shotgunScore << "\n";
-                        std::cout << "Archery Score: " << *archeryScore << "\n";
-                        counterXp++;
-                    }
+					std::cout << "Maxed out stats and money!\n";
+                    statHack = false;
+				}
+                else
+                {
+					while (GetAsyncKeyState(VK_NUMPAD1))
+					{
+                        statHack = true;
+					}
                 }
             }
             else
@@ -188,12 +164,8 @@ void injected_thread(HMODULE instance) noexcept
         }
     }
 
-    // Cleanup
-    //MH_DisableHook((LPVOID)targetAddr);
-    //MH_Uninitialize();
-    fclose(f);
-    FreeConsole();
-    FreeLibraryAndExitThread(instance, 0);
+	// cleanup
+    thread2Running = false; // Mark this thread as finished
 }
 
 int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reserved)
@@ -201,8 +173,12 @@ int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reser
     if (reason == 1) // DLL_PROCESS_ATTACH
     {
         DisableThreadLibraryCalls(instance);
-        const auto thread = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(injected_thread), instance, 0, nullptr);
+        const auto thread = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(InitiateHooks), instance, 0, nullptr);
         if (thread) CloseHandle(thread);
+
+        const auto thread2 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(StatHack), instance, 0, nullptr);
+        if (thread2) CloseHandle(thread2);
     }
+    
     return TRUE;
 }
