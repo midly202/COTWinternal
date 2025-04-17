@@ -1,5 +1,15 @@
-# DLL Injector
+# COTW Internal
 
-A simple, lightweight DLL injector built in C++ that supports both 32-bit and 64-bit processes.
-
-Lets the user choose a DLL file and inject it into a target process by entering its executable name
+## Features:
+[1] Stathack
+- money
+- xp
+- level
+- skill points
+- perk points
+- archery score
+- handgun score
+- rifle score
+- shotgun score
+[2] Infinite Ammo
+- removes ammo and clip decrement logic
