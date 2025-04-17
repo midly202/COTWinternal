@@ -1,29 +1,10 @@
-// DWORD*       =	4 byte
-// uint32_t*    =	4 bytes
-// uintptr_t*   =	8 bytes
-// float*       =   float
-
-// Pointer Cast (wrong)
-//uintptr_t* pBaseAddress = (uintptr_t*)GetModuleHandleA("TheHunterCotW_F.exe");
-
-// Value Cast (correct)
-//uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
-
-// if ejecting the thread from within the same thread doesn't work do it in a seperate thread.
-/*
-void __stdcall EjectThread(LPVOID lpParameter)
-{
-    Sleep(100);
-	FreeLibraryAndExitThread(static_cast<HMODULE>(lpParameter), 0);
-}
-*/
-
 #define WIN_32_LEAN_AND_MEAN
 #include <iostream>
 #include <Windows.h>
 #include <cstdint>
 #include <thread>
 #include "../header/functions.h"
+#include "../header/hooks.h"
 #include "MinHook.h"
 
 #if _WIN64
@@ -32,159 +13,128 @@ void __stdcall EjectThread(LPVOID lpParameter)
 #pragma comment(lib, "libMinHook.x86.lib")
 #endif
 
-namespace offset
-{
-    constexpr uintptr_t level = 0x260; // wrong 
-    constexpr uintptr_t xp = 0x2D0; // correct but verify if xp is even relevant
-    constexpr uintptr_t skillPoints = 0x2D4;
-    constexpr uintptr_t perkPoints = 0x2D8;
-    constexpr uintptr_t cash = 0x360;
-    constexpr uintptr_t rifleScore = 0x378;
-    constexpr uintptr_t handgunScore = 0x37C;
-    constexpr uintptr_t shotgunScore = 0x380;
-    constexpr uintptr_t archeryScore = 0x384;
-	constexpr float worldTime = 0xE8; // different base 
-}
-
 // global flag
-char coordOpcode[] = "/x90/x90"; // nop; this has to be the instruction's value in bytes, same concept as signature
-bool statHack = false;
+uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
+CPlayerInformation* player = NULL;
+CCharacter* character = NULL;
+CWorldTime* worldTime = NULL;
+
+uintptr_t clipFunc = baseAddress + 0x76CB01;
+char clipOriginalBytes[4];
+char clipOpCode[] = { 0x90, 0x90, 0x90, 0x90 };
+
+uintptr_t clipShotgunFunc = baseAddress + 0x76CAF0;
+char clipShotgunOriginalBytes[4];
+char clipShotgunOpCode[] = { 0x90, 0x90, 0x90, 0x90 };
+
+uintptr_t ammoFunc = baseAddress + 0xA1698D;
+char ammoOriginalBytes[7];
+char ammoOpCode[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+
+bool statHackEnabled = false;
+bool infiniteAmmoEnabled = false;
 bool thread1Running = true;
 bool thread2Running = true;
+bool thread3Running = true;
 
-void InitiateHooks(HMODULE instance) noexcept
+void Initialization(HMODULE instance) noexcept
 {
-    // Allocates console for debugging
     AllocConsole();
     FILE* f = nullptr;
     freopen_s(&f, "CONOUT$", "w", stdout);
-    std::cout << "Hooking thread active...\n";
+    memcpy(clipOriginalBytes, (void*)clipFunc, 4);
+    memcpy(ammoOriginalBytes, (void*)ammoFunc, 7);
 
-    // scan for signature
     uintptr_t coordAddy = FindPattern("theHunterCotW_F.exe", "\x0F\x28\x45\xD0\x0F\x29\x06", "xxxxxxx");
-    coordAddy += 4;
-    MsgBoxAddy(coordAddy);
-	// WriteToMemory(coordAddy, coordOpcode, 2); // size is currently 2 for nop, this will have to be changed
+    std::cout << "Coordinates found at 0x" << coordAddy << "!\n";
+    Sleep(1000);
+    system("cls");
+    showMenu(statHackEnabled, infiniteAmmoEnabled);
 
-	// while loop to keep the console open
+    // wait for uninjection process
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
-		Sleep(10);
+        Sleep(10);
     }
 
-    // Only free the DLL if both threads are done
-    thread1Running = false;
-    while (GetAsyncKeyState(VK_NUMPAD0))
+    // cleanup
+    Sleep(100);
+    while (!CanUninject(thread1Running, thread2Running))
     {
-        Sleep(10);
-        if (CanUninject(thread1Running, thread2Running))
-        {
-            fclose(f);
-            FreeConsole();
-            FreeLibraryAndExitThread(instance, 0);
-        }
-        else
-            std::cout << "Cannot uninject yet! Threads still running.\n";
+        std::cout << "Cannot uninject yet! Threads still running.\n";
+        Sleep(100);
     }
+
+    if (f) fclose(f);
+    FreeConsole();
+    EjectHook();
+    FreeLibraryAndExitThread(instance, 0);
+}
+
+void OverwriteOpcodes(HMODULE instance) noexcept
+{
+	while (!GetAsyncKeyState(VK_NUMPAD0))
+	{
+        // infinite ammo
+        if (GetAsyncKeyState(VK_NUMPAD2) & 1)
+        {
+            infiniteAmmoEnabled = !infiniteAmmoEnabled;
+
+            if (infiniteAmmoEnabled)
+            {
+                WriteToMemory(clipFunc, clipOpCode, 4);
+                WriteToMemory(clipShotgunFunc, clipShotgunOpCode, 4);
+                WriteToMemory(ammoFunc, ammoOpCode, 7);
+                system("cls");
+                showMenu(statHackEnabled, infiniteAmmoEnabled);
+            }
+            else
+            {
+                WriteToMemory(clipFunc, clipOriginalBytes, 4);
+                WriteToMemory(clipShotgunFunc, clipShotgunOriginalBytes, 4);
+                WriteToMemory(ammoFunc, ammoOriginalBytes, 7);
+                system("cls");
+                showMenu(statHackEnabled, infiniteAmmoEnabled);
+            }
+        }
+
+        Sleep(10);
+	}
+
+    thread1Running = false;
 }
 
 void StatHack(HMODULE instance) noexcept
 {
-    // Allocates console for debugging
-    AllocConsole();
-    FILE* f = nullptr;
-    freopen_s(&f, "CONOUT$", "w", stdout);
-    std::cout << "StatHack thread active...\n";
-
-    // module base
-    uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
-
-    //player base
-    uintptr_t* playerBasePtr = reinterpret_cast<uintptr_t*>(baseAddress + 0x0234E8A0);
-    if (!playerBasePtr || !*playerBasePtr) return;
-
-    uintptr_t playerBase = *playerBasePtr;
-    if (!playerBase) return;
-
-    playerBase = *(uintptr_t*)(playerBase + 0x198);
-    if (!playerBase) return;
-
-    playerBase = *(uintptr_t*)(playerBase + 0x48);
-    if (!playerBase) return;
-
-    std::cout << "Module Base Found at: 0x" << std::hex << baseAddress << "\n";
-    std::cout << "Player Base Found at: 0x" << std::hex << playerBase << "\n";
-
-    // Pointers to values
-    uint32_t* playerCash = reinterpret_cast<uint32_t*>(playerBase + offset::cash);
-    uint32_t* playerXP = reinterpret_cast<uint32_t*>(playerBase + offset::xp);
-    uint32_t* playerLevel = reinterpret_cast<uint32_t*>(playerBase + offset::level);
-    uint32_t* rifleScore = reinterpret_cast<uint32_t*>(playerBase + offset::rifleScore);
-    uint32_t* handgunScore = reinterpret_cast<uint32_t*>(playerBase + offset::handgunScore);
-    uint32_t* shotgunScore = reinterpret_cast<uint32_t*>(playerBase + offset::shotgunScore);
-    uint32_t* archeryScore = reinterpret_cast<uint32_t*>(playerBase + offset::archeryScore);
-    uint32_t* skillPoints = reinterpret_cast<uint32_t*>(playerBase + offset::skillPoints);
-    uint32_t* perkPoints = reinterpret_cast<uint32_t*>(playerBase + offset::perkPoints);
-
     int count = 1;
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
-        Sleep(10);
-
-        __try
+        Sleep(5);
+        if (GetAsyncKeyState(VK_NUMPAD1) & 1)
         {
-            if (playerCash && playerXP && rifleScore && handgunScore && shotgunScore && archeryScore && playerLevel && skillPoints && perkPoints && offset::cash && offset::xp && offset::rifleScore && offset::handgunScore && offset::shotgunScore && offset::archeryScore && offset::level && offset::skillPoints && offset::perkPoints)
-            {
-                if (statHack)
-                {
-                    *playerCash = 999999999;
-                    *playerXP = 999999999;
-                    *rifleScore = 999999999;
-                    *handgunScore = 999999999;
-                    *shotgunScore = 999999999;
-                    *archeryScore = 999999999;
-                    *playerLevel = 60;
-                    *skillPoints = 999999999;
-                    *perkPoints = 999999999;
-
-					std::cout << "Maxed out stats and money!\n";
-                    statHack = false;
-				}
-                else
-                {
-					while (GetAsyncKeyState(VK_NUMPAD1))
-					{
-                        statHack = true;
-					}
-                }
-            }
-            else
-            {
-                std::cout << "Invalid pointer detected!\n";
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            std::cout << "Dereference failed " << count << "\n";
-            count++;
+            ToggleStatHack();
+            if (statHackEnabled)
+                MaintainStatHack();
         }
     }
 
-	// cleanup
     thread2Running = false;
 }
 
 int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reserved)
 {
-    if (reason == 1) // DLL_PROCESS_ATTACH
-    {
-        DisableThreadLibraryCalls(instance);
-        const auto thread = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(InitiateHooks), instance, 0, nullptr);
-        if (thread) CloseHandle(thread);
-
-        const auto thread2 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(StatHack), instance, 0, nullptr);
+	switch (reason)
+	{
+	case DLL_PROCESS_ATTACH:
+		DisableThreadLibraryCalls(instance);
+		const auto thread = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Initialization), instance, 0, nullptr);
+		if (thread) CloseHandle(thread);
+        const auto thread2 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(OverwriteOpcodes), instance, 0, nullptr);
         if (thread2) CloseHandle(thread2);
-    }
-    
+        const auto thread3 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(StatHack), instance, 0, nullptr);
+        if (thread3) CloseHandle(thread3);
+        break;
+	}
+
     return TRUE;
 }

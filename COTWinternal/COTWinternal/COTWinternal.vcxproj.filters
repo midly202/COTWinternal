@@ -23,5 +23,11 @@
     <ClInclude Include="header\functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="header\hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="header\offsets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
