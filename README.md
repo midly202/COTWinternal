@@ -11,5 +11,7 @@
 - handgun score
 - rifle score
 - shotgun score
+<br>
 [2] Infinite Ammo
-- removes ammo and clip decrement logic
+- removes ammo decrement logic
+- removes clip decrement logic
