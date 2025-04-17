@@ -2,6 +2,8 @@
 
 Console UI shows current status of all toggles (ON/OFF)
 
+Might add more features in the future.
+
 ---
 
 ## 🔧 Features
