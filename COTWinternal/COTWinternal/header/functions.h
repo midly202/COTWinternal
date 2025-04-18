@@ -10,6 +10,7 @@ extern CCharacter* character;
 extern CWorldTime* worldTime;
 extern bool statHackEnabled;
 extern bool infiniteAmmoEnabled;
+extern bool timeChangerEnabled;
 
 void MsgBoxAddy(uintptr_t addy)
 {
@@ -75,10 +76,11 @@ void PlaceJMP(BYTE* address, uintptr_t jumpTo, uintptr_t length)
 	VirtualProtect(address, length, dwOldProtect, &dwBkup);
 }
 
-void showMenu(bool statHack, bool infiniteAmmo)
+void showMenu(bool statHack, bool infiniteAmmo, bool timeChanger)
 {
 	std::cout << "[1] Stat Hack [" << (statHack ? "ON" : "OFF") << "]\n";
 	std::cout << "[2] Infinite Ammo [" << (infiniteAmmo ? "ON" : "OFF") << "]\n";
+	std::cout << "[3] Time Changer [" << (timeChanger ? "ON" : "OFF") << "]\n";
 }
 
 void WaitForKeyRelease(int vkKey)
@@ -86,9 +88,9 @@ void WaitForKeyRelease(int vkKey)
 	while (GetAsyncKeyState(vkKey)) Sleep(10);
 }
 
-bool CanUninject(bool thread1Running, bool thread2Running)
+bool CanUninject(bool thread1Running, bool thread2Running, bool thread3Running)
 {
-	if (thread1Running || thread2Running)
+	if (thread1Running || thread2Running || thread3Running)
 		return false; // Returns false if either thread is still running
 	else 
 		return true; // Returns true if both threads have exited
@@ -105,7 +107,7 @@ void ToggleStatHack()
 	statHackEnabled = !statHackEnabled;
 	WaitForKeyRelease(VK_NUMPAD1);
 	system("cls");
-	showMenu(statHackEnabled, infiniteAmmoEnabled);
+	showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
 }
 
 void MaintainStatHack()
@@ -139,7 +141,40 @@ void MaintainStatHack()
 			statHackEnabled = false;
 			WaitForKeyRelease(VK_NUMPAD1);
 			system("cls");
-			showMenu(statHackEnabled, infiniteAmmoEnabled);
+			showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
+			break;
+		}
+	}
+}
+
+void ToggleTimeChanger()
+{
+	timeChangerEnabled = !timeChangerEnabled;
+	WaitForKeyRelease(VK_NUMPAD3);
+	system("cls");
+	showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
+}
+
+void MaintainTimeChanger()
+{
+	while (timeChangerEnabled && !GetAsyncKeyState(VK_NUMPAD0))
+	{
+		uintptr_t worldTimeBase = *reinterpret_cast<uintptr_t*>(baseAddress + offset::worldTimeBase);
+		if (!worldTimeBase) return;
+
+		CWorldTime* worldTime = reinterpret_cast<CWorldTime*>(worldTimeBase);
+
+		worldTime->timeMultiplier = 1000.00;
+
+		Sleep(5);
+
+		if (GetAsyncKeyState(VK_NUMPAD3) & 1)
+		{
+			timeChangerEnabled = false;
+			worldTime->timeMultiplier = 1;
+			WaitForKeyRelease(VK_NUMPAD3);
+			system("cls");
+			showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
 			break;
 		}
 	}

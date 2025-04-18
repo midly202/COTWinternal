@@ -33,6 +33,8 @@ char ammoOpCode[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
 
 bool statHackEnabled = false;
 bool infiniteAmmoEnabled = false;
+bool timeChangerEnabled = false;
+
 bool thread1Running = true;
 bool thread2Running = true;
 bool thread3Running = true;
@@ -49,7 +51,7 @@ void Initialization(HMODULE instance) noexcept
     std::cout << "Coordinates found at 0x" << coordAddy << "!\n";
     Sleep(1000);
     system("cls");
-    showMenu(statHackEnabled, infiniteAmmoEnabled);
+    showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
 
     // wait for uninjection process
     while (!GetAsyncKeyState(VK_NUMPAD0))
@@ -59,7 +61,7 @@ void Initialization(HMODULE instance) noexcept
 
     // cleanup
     Sleep(100);
-    while (!CanUninject(thread1Running, thread2Running))
+    while (!CanUninject(thread1Running, thread2Running, thread3Running))
     {
         std::cout << "Cannot uninject yet! Threads still running.\n";
         Sleep(100);
@@ -86,7 +88,7 @@ void OverwriteOpcodes(HMODULE instance) noexcept
                 WriteToMemory(clipShotgunFunc, clipShotgunOpCode, 4);
                 WriteToMemory(ammoFunc, ammoOpCode, 7);
                 system("cls");
-                showMenu(statHackEnabled, infiniteAmmoEnabled);
+                showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
             }
             else
             {
@@ -94,7 +96,7 @@ void OverwriteOpcodes(HMODULE instance) noexcept
                 WriteToMemory(clipShotgunFunc, clipShotgunOriginalBytes, 4);
                 WriteToMemory(ammoFunc, ammoOriginalBytes, 7);
                 system("cls");
-                showMenu(statHackEnabled, infiniteAmmoEnabled);
+                showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
             }
         }
 
@@ -106,7 +108,6 @@ void OverwriteOpcodes(HMODULE instance) noexcept
 
 void StatHack(HMODULE instance) noexcept
 {
-    int count = 1;
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
         Sleep(5);
@@ -121,6 +122,22 @@ void StatHack(HMODULE instance) noexcept
     thread2Running = false;
 }
 
+void TimeChanger(HMODULE instance) noexcept
+{
+    while (!GetAsyncKeyState(VK_NUMPAD0))
+    {
+        Sleep(5);
+        if (GetAsyncKeyState(VK_NUMPAD3) & 1)
+        {
+            ToggleTimeChanger();
+            if (timeChangerEnabled)
+                MaintainTimeChanger();
+        }
+    }
+
+    thread3Running = false;
+}
+
 int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reserved)
 {
 	switch (reason)
@@ -133,6 +150,8 @@ int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reser
         if (thread2) CloseHandle(thread2);
         const auto thread3 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(StatHack), instance, 0, nullptr);
         if (thread3) CloseHandle(thread3);
+        const auto thread4 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(TimeChanger), instance, 0, nullptr);
+        if (thread4) CloseHandle(thread4);
         break;
 	}
 

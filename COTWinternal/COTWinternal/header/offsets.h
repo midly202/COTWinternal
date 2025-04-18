@@ -4,20 +4,7 @@
 namespace offset
 {
 	constexpr uintptr_t playerBase = 0x0234E8A0;
-
-    constexpr uintptr_t level = 0x260;  // CPlayerInformation
-    constexpr uintptr_t xp = 0x2D0; // CPlayerInformation
-    constexpr uintptr_t skillPoints = 0x2D4; // CPlayerInformation
-    constexpr uintptr_t perkPoints = 0x2D8; // CPlayerInformation
-    constexpr uintptr_t cash = 0x360; // CPlayerInformation
-    constexpr uintptr_t rifleScore = 0x378; // CPlayerInformation
-    constexpr uintptr_t handgunScore = 0x37C; // CPlayerInformation
-    constexpr uintptr_t shotgunScore = 0x380; // CPlayerInformation
-    constexpr uintptr_t archeryScore = 0x384; // CPlayerInformation
-    constexpr uintptr_t worldTime = 0xE8; // CWorldTime 
-    constexpr uintptr_t clipFunc = 0x76CB01; // nop to lock clip (4 nops)
-    constexpr uintptr_t clipShotgunFunc = 0x76CAF0; // nop to lock clip (4 nops)
-    constexpr uintptr_t ammoFunc = 0xA1698D; // nop to lock ammo (7 nops)
+	constexpr uintptr_t worldTimeBase = 0x024B0BF0;
 }
 
 struct Vector2 
