@@ -50,18 +50,18 @@ public:
 	float time; //0x00E8
 	char pad_00EC[4]; //0x00EC
 	float timeMultiplier; //0x00F0
-	float size; //0x00F4
-	char pad_00F8[12]; //0x00F8
-	float timer; //0x0104
-}; //Size: 0x0108
+	char pad_00F4[12]; //0x00F4
+	float timer; //0x0100
+	char pad_0104[12]; //0x0104
+}; //Size: 0x0110
 
 class CCharacter
 {
 public:
 	char pad_0000[896]; //0x0000
-	Vector3 headPos; //0x0380
+	Vector3 coords; //0x0380
 	char pad_038C[372]; //0x038C
-	Vector3 bodyPos; //0x0500
+	Vector3 coords2; //0x0500
 	char pad_050C[8]; //0x050C
 	Vector3 viewAngles; //0x0514
 	char pad_0520[32]; //0x0520
