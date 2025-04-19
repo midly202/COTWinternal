@@ -81,8 +81,9 @@ void OverwriteOpcodes(HMODULE instance) noexcept
 	while (!GetAsyncKeyState(VK_NUMPAD0))
 	{
         // infinite ammo
-        if (GetAsyncKeyState(VK_NUMPAD2) & 1)
+        if (GetAsyncKeyState(VK_NUMPAD2) & 0x8000)
         {
+            WaitForKeyRelease(VK_NUMPAD2);
             infiniteAmmoEnabled = !infiniteAmmoEnabled;
 
             if (infiniteAmmoEnabled)
@@ -113,8 +114,8 @@ void StatHack(HMODULE instance) noexcept
 {
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
-        Sleep(5);
-        if (GetAsyncKeyState(VK_NUMPAD1) & 1)
+        Sleep(10);
+        if (GetAsyncKeyState(VK_NUMPAD1) & 0x8000)
         {
             ToggleStatHack();
             if (statHackEnabled)
@@ -129,8 +130,8 @@ void TimeChanger(HMODULE instance) noexcept
 {
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
-        Sleep(5);
-        if (GetAsyncKeyState(VK_NUMPAD3) & 1)
+        Sleep(10);
+        if (GetAsyncKeyState(VK_NUMPAD3) & 0x8000)
         {
             MaintainTimeChanger();
         }
@@ -143,8 +144,8 @@ void testthread(HMODULE instance) noexcept
 {
     while (!GetAsyncKeyState(VK_NUMPAD0))
     {
-        Sleep(5);
-        if (GetAsyncKeyState(VK_NUMPAD4) & 1)
+        Sleep(10);
+        if (GetAsyncKeyState(VK_NUMPAD4) & 0x8000)
         {
             // code
         }

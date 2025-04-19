@@ -157,9 +157,9 @@ void MaintainStatHack()
 		player->perkpoints = 999999999;
 		player->skillpoints = 999999999;
 
-		Sleep(5);
+		Sleep(10);
 
-		if (GetAsyncKeyState(VK_NUMPAD1) & 1)
+		if (GetAsyncKeyState(VK_NUMPAD1) & 0x8000)
 		{
 			statHackEnabled = false;
 			WaitForKeyRelease(VK_NUMPAD1);
@@ -192,9 +192,9 @@ void MaintainTimeChanger()
 			worldTime->timeMultiplier = 1000;
 		}
 
-		Sleep(5);
+		Sleep(10);
 
-		if (GetAsyncKeyState(VK_NUMPAD3) & 1)
+		if (GetAsyncKeyState(VK_NUMPAD3) & 0x8000)
 		{
 			timeChangerEnabled++;
 			if (timeChangerEnabled > 2)
