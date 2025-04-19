@@ -10,13 +10,28 @@ extern CCharacter* character;
 extern CWorldTime* worldTime;
 extern bool statHackEnabled;
 extern bool infiniteAmmoEnabled;
-extern bool timeChangerEnabled;
+extern int timeChangerEnabled;
 
 void MsgBoxAddy(uintptr_t addy)
 {
-	char szBuffer[1024];
-	sprintf_s(szBuffer, "Address: %016llX", addy);
-	MessageBoxA(NULL, szBuffer, "Address", MB_OK);
+	char szAddressOnly[32];
+	sprintf_s(szAddressOnly, "%016llX", addy);
+
+	const size_t len = strlen(szAddressOnly) + 1;
+	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
+	if (hMem)
+	{
+		memcpy(GlobalLock(hMem), szAddressOnly, len);
+		GlobalUnlock(hMem);
+		OpenClipboard(0);
+		EmptyClipboard();
+		SetClipboardData(CF_TEXT, hMem);
+		CloseClipboard();
+	}
+
+	char szFullMsg[64];
+	sprintf_s(szFullMsg, "Address copied: %s", szAddressOnly);
+	MessageBoxA(NULL, szFullMsg, "Copied!", MB_OK);
 }
 
 MODULEINFO GetModuleInfo(const char* szModule)
@@ -76,11 +91,19 @@ void PlaceJMP(BYTE* address, uintptr_t jumpTo, uintptr_t length)
 	VirtualProtect(address, length, dwOldProtect, &dwBkup);
 }
 
-void showMenu(bool statHack, bool infiniteAmmo, bool timeChanger)
+void showMenu(bool statHack, bool infiniteAmmo, int timeChanger)
 {
 	std::cout << "[1] Stat Hack [" << (statHack ? "ON" : "OFF") << "]\n";
 	std::cout << "[2] Infinite Ammo [" << (infiniteAmmo ? "ON" : "OFF") << "]\n";
-	std::cout << "[3] Time Changer [" << (timeChanger ? "ON" : "OFF") << "]\n";
+	const char* timeMode;
+	switch (timeChanger)
+	{
+	case 0: timeMode = "NORMAL"; break;
+	case 1: timeMode = "FROZEN"; break;
+	case 2: timeMode = "FAST FORWARD"; break;
+	default: timeMode = "unknown"; break;
+	}
+	std::cout << "[3] Time Progression [" << timeMode << "]\n";
 }
 
 void WaitForKeyRelease(int vkKey)
@@ -88,9 +111,9 @@ void WaitForKeyRelease(int vkKey)
 	while (GetAsyncKeyState(vkKey)) Sleep(10);
 }
 
-bool CanUninject(bool thread1Running, bool thread2Running, bool thread3Running)
+bool CanUninject(bool thread1Running, bool thread2Running, bool thread3Running, bool thread4Running)
 {
-	if (thread1Running || thread2Running || thread3Running)
+	if (thread1Running || thread2Running || thread3Running || thread4Running)
 		return false; // Returns false if either thread is still running
 	else 
 		return true; // Returns true if both threads have exited
@@ -147,35 +170,38 @@ void MaintainStatHack()
 	}
 }
 
-void ToggleTimeChanger()
-{
-	timeChangerEnabled = !timeChangerEnabled;
-	WaitForKeyRelease(VK_NUMPAD3);
-	system("cls");
-	showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
-}
-
 void MaintainTimeChanger()
 {
-	while (timeChangerEnabled && !GetAsyncKeyState(VK_NUMPAD0))
+	while (!GetAsyncKeyState(VK_NUMPAD0))
 	{
 		uintptr_t worldTimeBase = *reinterpret_cast<uintptr_t*>(baseAddress + offset::worldTimeBase);
 		if (!worldTimeBase) return;
 
 		CWorldTime* worldTime = reinterpret_cast<CWorldTime*>(worldTimeBase);
 
-		worldTime->timeMultiplier = 1000.00;
+		if (timeChangerEnabled == 0 && worldTime->timeMultiplier != 1)
+		{
+			worldTime->timeMultiplier = 1;
+		}
+		else if (timeChangerEnabled == 1 && worldTime->timeMultiplier != 0)
+		{
+			worldTime->timeMultiplier = 0;
+		}
+		else if (timeChangerEnabled == 2 && worldTime->timeMultiplier != 1000)
+		{
+			worldTime->timeMultiplier = 1000;
+		}
 
 		Sleep(5);
 
 		if (GetAsyncKeyState(VK_NUMPAD3) & 1)
 		{
-			timeChangerEnabled = false;
-			worldTime->timeMultiplier = 1;
+			timeChangerEnabled++;
+			if (timeChangerEnabled > 2)
+				timeChangerEnabled = 0;
 			WaitForKeyRelease(VK_NUMPAD3);
 			system("cls");
 			showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
-			break;
 		}
 	}
 }

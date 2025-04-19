@@ -1,9 +1,12 @@
 #include <Windows.h>
 #include <vector>
 
+extern uintptr_t coordAddy;
+
 namespace offset
 {
 	constexpr uintptr_t playerBase = 0x0234E8A0;
+	uintptr_t characterBase = coordAddy - 0x500; // cant be a constexpr
 	constexpr uintptr_t worldTimeBase = 0x024B0BF0;
 }
 

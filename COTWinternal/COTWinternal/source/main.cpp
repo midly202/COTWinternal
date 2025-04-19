@@ -31,13 +31,16 @@ uintptr_t ammoFunc = baseAddress + 0xA1698D;
 char ammoOriginalBytes[7];
 char ammoOpCode[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
 
+uintptr_t coordAddy;
+
 bool statHackEnabled = false;
 bool infiniteAmmoEnabled = false;
-bool timeChangerEnabled = false;
+int timeChangerEnabled = 0;
 
 bool thread1Running = true;
 bool thread2Running = true;
 bool thread3Running = true;
+bool thread4Running = true;
 
 void Initialization(HMODULE instance) noexcept
 {
@@ -48,8 +51,8 @@ void Initialization(HMODULE instance) noexcept
     memcpy(ammoOriginalBytes, (void*)ammoFunc, 7);
 
     uintptr_t coordAddy = FindPattern("theHunterCotW_F.exe", "\x0F\x28\x45\xD0\x0F\x29\x06", "xxxxxxx");
-    std::cout << "Coordinates found at 0x" << coordAddy << "!\n";
-    Sleep(1000);
+    coordAddy += 0x7;
+    MsgBoxAddy(coordAddy);
     system("cls");
     showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
 
@@ -61,7 +64,7 @@ void Initialization(HMODULE instance) noexcept
 
     // cleanup
     Sleep(100);
-    while (!CanUninject(thread1Running, thread2Running, thread3Running))
+    while (!CanUninject(thread1Running, thread2Running, thread3Running, thread4Running))
     {
         std::cout << "Cannot uninject yet! Threads still running.\n";
         Sleep(100);
@@ -129,13 +132,25 @@ void TimeChanger(HMODULE instance) noexcept
         Sleep(5);
         if (GetAsyncKeyState(VK_NUMPAD3) & 1)
         {
-            ToggleTimeChanger();
-            if (timeChangerEnabled)
-                MaintainTimeChanger();
+            MaintainTimeChanger();
         }
     }
 
     thread3Running = false;
+}
+
+void testthread(HMODULE instance) noexcept
+{
+    while (!GetAsyncKeyState(VK_NUMPAD0))
+    {
+        Sleep(5);
+        if (GetAsyncKeyState(VK_NUMPAD4) & 1)
+        {
+            // code
+        }
+    }
+
+    thread4Running = false;
 }
 
 int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reserved)
@@ -152,6 +167,8 @@ int __stdcall DllMain(HMODULE instance, std::uintptr_t reason, const void* reser
         if (thread3) CloseHandle(thread3);
         const auto thread4 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(TimeChanger), instance, 0, nullptr);
         if (thread4) CloseHandle(thread4);
+        const auto thread5 = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(testthread), instance, 0, nullptr);
+        if (thread5) CloseHandle(thread5);
         break;
 	}
 
