@@ -176,25 +176,19 @@ void showMenu(bool statHack, bool infiniteAmmo, int timeChanger)
 )" << RESET << "\n";
 
 	std::cout << BLINK + "[0] Uninject" + RESET << "\n\n";
-	std::cout << "[1] Stat Hack ["
-		<< (statHack ? GREEN + "ON" + RESET : RED + "OFF" + RESET)
-		<< "]\n";
-
-	std::cout << "[2] Infinite Ammo ["
-		<< (infiniteAmmo ? GREEN + "ON" + RESET : RED + "OFF" + RESET)
-		<< "]\n";
-
-	std::cout << "[3] Time Changer [";
+	std::cout << "[1] [" << (statHack ? GREEN + "ON" + RESET : RED + "OFF" + RESET) << "] Stat Hack\n";
+	std::cout << "[2] [" << (infiniteAmmo ? GREEN + "ON" + RESET : RED + "OFF" + RESET) << "] Infinite Ammo\n";
+	std::cout << "[3] [";
 
 	switch (timeChanger)
 	{
-	case 0: std::cout << RED + std::string("Normal") + RESET; break;
-	case 1: std::cout << RGB_ORANGE + std::string("Frozen") + RESET; break;
-	case 2: std::cout << GREEN + std::string("Fast Forward") + RESET; break;
+	case 0: std::cout << RED + std::string("OFF") + RESET; break;
+	case 1: std::cout << RGB_ORANGE + std::string("FROZEN") + RESET; break;
+	case 2: std::cout << GREEN + std::string("FAST FORWARD") + RESET; break;
 	default: std::cout << WHITE + std::string("Unknown") + RESET; break;
 	}
 
-	std::cout << "]\n";
+	std::cout << "] Time Changer\n";
 }
 
 void WaitForKeyRelease(int vkKey)
