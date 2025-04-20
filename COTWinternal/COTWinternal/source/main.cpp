@@ -18,6 +18,7 @@ uintptr_t baseAddress = (uintptr_t)GetModuleHandleA("TheHunterCotW_F.exe");
 CPlayerInformation* player = NULL;
 CCharacter* character = NULL;
 CWorldTime* worldTime = NULL;
+SSysSettings* sysSettings = NULL;
 
 uintptr_t clipFunc = baseAddress + 0x76CB01; // fallback if AOB scan fails
 char clipOriginalBytes[4];
@@ -134,10 +135,20 @@ void OverwriteOpcodes(HMODULE instance) noexcept
         if (GetAsyncKeyState(VK_NUMPAD2) & 0x8000)
         {
             WaitForKeyRelease(VK_NUMPAD2);
+
+            uintptr_t sysSettingsBase = *reinterpret_cast<uintptr_t*>(baseAddress + offset::sysSettingsBase);
+            if (!sysSettingsBase) return;
+
+            sysSettingsBase = *reinterpret_cast<uintptr_t*>(sysSettingsBase + 0xF08);
+            if (!sysSettingsBase) return;
+
+            SSysSettings* sysSettings = reinterpret_cast<SSysSettings*>(sysSettingsBase);
+
             infiniteAmmoEnabled = !infiniteAmmoEnabled;
 
             if (infiniteAmmoEnabled)
             {
+				sysSettings->manualReload = true;
                 WriteToMemory(clipFunc, clipOpCode, 4);
                 WriteToMemory(clipShotgunFunc, clipShotgunOpCode, 4);
                 WriteToMemory(ammoFunc, ammoOpCode, 7);
@@ -146,6 +157,7 @@ void OverwriteOpcodes(HMODULE instance) noexcept
             }
             else
             {
+                sysSettings->manualReload = false;
                 WriteToMemory(clipFunc, clipOriginalBytes, 4);
                 WriteToMemory(clipShotgunFunc, clipShotgunOriginalBytes, 4);
                 WriteToMemory(ammoFunc, ammoOriginalBytes, 7);
