@@ -59,6 +59,7 @@ void Initialization(HMODULE instance) noexcept
 +-----------------------------------------+
 )" << RESET << "\n\n";
     memcpy(clipOriginalBytes, (void*)clipFunc, 4);
+	memcpy(clipShotgunOriginalBytes, (void*)clipShotgunFunc, 4);
     memcpy(ammoOriginalBytes, (void*)ammoFunc, 7);
 
 	std::cout << BRIGHT_YELLOW + BLINK << "Scanning for patterns..." << RESET << "\n\n";
