@@ -19,15 +19,15 @@ CPlayerInformation* player = NULL;
 CCharacter* character = NULL;
 CWorldTime* worldTime = NULL;
 
-uintptr_t clipFunc = baseAddress + 0x76CB01;
+uintptr_t clipFunc = baseAddress + 0x76CB01; // fallback if AOB scan fails
 char clipOriginalBytes[4];
 char clipOpCode[] = { 0x90, 0x90, 0x90, 0x90 };
 
-uintptr_t clipShotgunFunc = baseAddress + 0x76CAF0;
+uintptr_t clipShotgunFunc = baseAddress + 0x76CAF0; // fallback if AOB scan fails
 char clipShotgunOriginalBytes[4];
 char clipShotgunOpCode[] = { 0x90, 0x90, 0x90, 0x90 };
 
-uintptr_t ammoFunc = baseAddress + 0xA1698D;
+uintptr_t ammoFunc = baseAddress + 0xA1698D; // fallback if AOB scan fails
 char ammoOriginalBytes[7];
 char ammoOpCode[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
 
@@ -47,12 +47,61 @@ void Initialization(HMODULE instance) noexcept
     AllocConsole();
     FILE* f = nullptr;
     freopen_s(&f, "CONOUT$", "w", stdout);
+    system("cls");
+    std::cout << BRIGHT_RED + BOLD << R"(
++-----------------------------------------+
+|     /\___/\                             |
+|    ( o   o )   Injecting...             |
+|    (  =^=  )                            |
+|    (        )                           |
+|    (         )                          |
+|    (          )))))))))))))))           |
++-----------------------------------------+
+)" << RESET << "\n\n";
     memcpy(clipOriginalBytes, (void*)clipFunc, 4);
     memcpy(ammoOriginalBytes, (void*)ammoFunc, 7);
 
-    uintptr_t coordAddy = FindPattern("theHunterCotW_F.exe", "\x0F\x28\x45\xD0\x0F\x29\x06", "xxxxxxx");
-    coordAddy += 0x7;
-    MsgBoxAddy(coordAddy);
+	std::cout << BRIGHT_YELLOW + BLINK << "Scanning for patterns..." << RESET << "\n\n";
+
+    coordAddy = FindPattern("theHunterCotW_F.exe", "\x0F\x28\x06\x41\x0F\x58\xC0\x0F\x59\xEE\x0F\x29\x45\x00\x0F\x29\x6E\x00\x0F\x28\x45\x00\x0F\x29\x06", "xxxxxxxxxxxxx?xxx?xxx?xxx");
+    if (coordAddy != 0)
+    {
+        coordAddy += 0x16;
+        std::cout << "Coordinate function found at: " << BRIGHT_YELLOW << "0x" << std::hex << coordAddy << RESET << "\n";
+    }
+    else
+        std::cout << BRIGHT_RED << "Coordinate function not found!" << RESET << "\n";
+
+    ammoFunc = FindPattern("theHunterCotW_F.exe", "\x41\x3B\xC0\x72\x12\x41\x2B\xC0\x41\x89\x87\x00\x00\x00\x00", "xxxxxxxxxxx????");
+    if (ammoFunc != 0)
+    {
+        ammoFunc += 0x8;
+        std::cout << "Ammo function found at: " << BRIGHT_YELLOW << "0x" << std::hex << ammoFunc << RESET << "\n";
+    }
+    else 
+        std::cout << BRIGHT_RED << "Ammo function not found!" << RESET << "\n";
+
+    clipFunc = FindPattern("theHunterCotW_F.exe", "\x32\xC0\x0F\xB6\xC8\x49\x8B\x81\x00\x00\x00\x00\x89\x54\xC8\x04", "xxxxxxxx????xxxx");
+    if (clipFunc != 0)
+    {
+        clipFunc += 0xC;
+        std::cout << "General clip function found at: " << BRIGHT_YELLOW << "0x" << std::hex << clipFunc << RESET << "\n";
+    }
+    else
+        std::cout << BRIGHT_RED << "General clip function not found!" << RESET << "\n";
+
+    clipShotgunFunc = FindPattern("theHunterCotW_F.exe", "\x41\x0F\xB6\x80\x00\x00\x00\x00\x0F\xB6\xC8\x49\x8B\x81\x00\x00\x00\x00\x89\x54\xC8\x04", "xxxx????xxxxx????xxxx");
+    if (clipShotgunFunc != 0)
+    {
+        clipShotgunFunc += 0x12;
+        std::cout << "Shotgun clip function found at: " << BRIGHT_YELLOW << "0x" << std::hex << clipShotgunFunc << RESET << "\n";
+    }
+    else
+        std::cout << BRIGHT_RED << "Shotgun clip function not found!" << RESET << "\n";
+
+    Sleep(1000);
+    // MsgBoxAddy(coordAddy);
+
     system("cls");
     showMenu(statHackEnabled, infiniteAmmoEnabled, timeChangerEnabled);
 
