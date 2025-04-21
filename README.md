@@ -1,4 +1,4 @@
-# The Hunter: Call of the Wild Internal Cheat
+# **The Hunter: Call of the Wild Internal Cheat**
 
 Console UI shows current status of all toggles (ON/OFF)
 
