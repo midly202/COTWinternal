@@ -1,5 +1,7 @@
 # **The Hunter: Call of the Wild Internal Cheat**
 
+OFFSETS ARE OUTDATED, PATTERN SCAN SHOULD STILL WORK, AM UNABLE TO TEST UNTIL I HAVE INTERNET
+
 Console UI shows current status of all toggles (ON/OFF)
 
 Might add more features in the future, if I ever get the motivation to reverse this game again.
